@@ -1,12 +1,12 @@
 {
-    "name": "eaglexpf/Roc",
+    "name": "eaglexpf/roc",
     "description": "workerman http api",
     "require": {
         "walkor/workerman": "3.*"
     },
     "autoload": {
         "psr-4": {
-            "eaglexpf\\roc\\": ""
+            "Roc\\": ""
         }
     },
     "license": "GPL-3.0+",

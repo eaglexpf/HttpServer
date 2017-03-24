@@ -1,6 +1,6 @@
 <?php
 
-namespace eaglexpf\roc;
+namespace Roc;
 
 class App{
 }
