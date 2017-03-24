@@ -1,6 +1,6 @@
 <?php
 
-namespace Roc;
+namespace roc;
 
 class App{
 }
