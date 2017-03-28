@@ -15,10 +15,28 @@ class Controller{
         self::$message = $message;
     }
 
+    /**
+     * 返回json数据
+     * @param $data
+     * @return mixed
+     */
     public static function sendJson($data){
         Http::header("Content-type: application/json");
         Http::header("Access-Control-Allow-Origin:*");
         return self::$connection->close(json_encode($data,320));
+    }
+
+    /**
+     * 返回html内容
+     */
+    public function sendHtml($view,$data){
+        $controller = explode("controllers",self::$message["roc"]["controller"]);
+        $file = __DIR__."/../../../../".str_replace("\\","/",$controller[0])."views".str_replace("\\","/",$controller[1])."/$view.php";
+//        $content = file_get_contents($file);
+        ob_start();
+        include $file;
+        $content = ob_get_clean();var_dump($content);
+        return self::$connection->close($content);
     }
 
     /**

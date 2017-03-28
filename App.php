@@ -76,6 +76,10 @@ class App
                     throw new \Exception("Class:$controller Not Found", 404);
                 }
             }
+            $message["roc"] = [
+                "controller" => $controller,
+                "action" => $action
+            ];
             //初始化文件
             $model = new $controller($connection,$message);
             //方法不存在
