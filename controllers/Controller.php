@@ -18,7 +18,7 @@ class Controller{
     public static function sendJson($data){
         Http::header("Content-type: application/json");
         Http::header("Access-Control-Allow-Origin:*");
-        self::$connection->close(json_encode($data,320));
+        return self::$connection->close(json_encode($data,320));
     }
 
     /**
@@ -63,5 +63,9 @@ class Controller{
                 return $value;
             }
         }
+    }
+
+    public static function server($key){
+        return self::$message['server'][$key];
     }
 }

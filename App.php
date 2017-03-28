@@ -19,7 +19,12 @@ class App
     protected static function onStart($http_worker){
         //引入配置文件
         self::$config = require_once (__DIR__."/config/main.php");
-        self::$userConfig = require_once (self::$userConfigFile);
+        //配置文件不存在
+        if (!is_file(self::$userConfigFile)) {
+            self::$userConfig = [];
+        }else {
+            self::$userConfig = require_once(self::$userConfigFile);
+        }
     }
 
     protected static function onConnect($connection){

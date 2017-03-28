@@ -10,19 +10,25 @@ use Workerman\Lib\Timer;
  */
 class FileMonitor{
     public static $time;
-    public function run(){
+    public static $config_file;
+    public function run($config_file){
         $worker = new Worker();
         $worker->name = 'FileMonitor';
         $worker->reloadable = false;
         self::$time = time();
+        self::$config_file = $config_file;
 
         $worker->onWorkerStart = function(){
-            $userConfig = require_once (__DIR__."/../../../../common/config/main.php");
+            //配置文件不存在
+            if (!is_file(self::$config_file)) {
+                $userConfig = ["FileMonitor"=>[__DIR__."/../../../../"]];
+            }else {
+                $userConfig = require_once(self::$config_file);
+            }
             $dir_data = isset($userConfig["FileMonitor"])?$userConfig["FileMonitor"]:[];
             // chek mtime of files per second
             Timer::add(1, [$this, 'check_files_change'],[$dir_data]);
         };
-        Worker::runAll();
     }
 
     public function check_files_change($dir_data){
