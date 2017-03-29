@@ -31,7 +31,7 @@ class Controller{
      */
     public function sendHtml($view,$data){
         $controller = explode("controllers",self::$message["roc"]["controller"]);
-        $file = __DIR__."/../../../../".str_replace("\\","/",$controller[0])."views".str_replace("\\","/",$controller[1])."/$view.php";
+        $file = __DIR__."/../../../../".str_replace("\\","/",$controller[0])."views".str_replace("\\","/",strtolower($controller[1]))."/$view.php";
 //        $content = file_get_contents($file);
         ob_start();
         include $file;

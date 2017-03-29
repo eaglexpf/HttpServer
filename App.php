@@ -64,6 +64,7 @@ class App
             //请求地址的绝对路径（去掉方法名称）
             $action = $array[count($array)-1];
             array_pop($array);
+            $array[count($array)-1] = ucfirst($array[count($array)-1]);
             $controller = implode("\\",$array);
             $file = __DIR__."/../../../".implode("/",$array).".php";
             //文件不存在
@@ -73,6 +74,7 @@ class App
                  */
                 array_push($array, $action);
                 $action = "index";
+                $array[count($array)-1] = ucfirst($array[count($array)-1]);
                 $controller = implode("\\",$array);
                 $file = __DIR__."/../../../".implode("/",$array).".php";
                 if (!is_file($file)) {
