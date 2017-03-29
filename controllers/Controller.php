@@ -23,7 +23,7 @@ class Controller{
     public static function sendJson($data){
         Http::header("Content-type: application/json");
         Http::header("Access-Control-Allow-Origin:*");
-        return self::$connection->close(json_encode($data,320));
+        return self::$connection->send(json_encode($data,320));
     }
 
     /**
@@ -35,8 +35,8 @@ class Controller{
 //        $content = file_get_contents($file);
         ob_start();
         include $file;
-        $content = ob_get_clean();var_dump($content);
-        return self::$connection->close($content);
+        $content = ob_get_clean();
+        return self::$connection->send($content);
     }
 
     /**

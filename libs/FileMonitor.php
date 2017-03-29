@@ -25,7 +25,7 @@ class FileMonitor{
             }else {
                 $userConfig = require_once(self::$config_file);
             }
-            $dir_data = isset($userConfig["FileMonitor"])?$userConfig["FileMonitor"]:[];
+            $dir_data = isset($userConfig["FileMonitor"])?$userConfig["FileMonitor"]:[__DIR__."/../../../../"];
             // chek mtime of files per second
             Timer::add(1, [$this, 'check_files_change'],[$dir_data]);
         };
@@ -34,7 +34,7 @@ class FileMonitor{
     public function check_files_change($dir_data){
         $last_mtime = self::$time;
         // recursive traversal directory
-        foreach ($dir_data as $value){
+        foreach ($dir_data as $k=>$value){
             $dir_iterator = new \RecursiveDirectoryIterator($value);
             $iterator = new \RecursiveIteratorIterator($dir_iterator);
             foreach ($iterator as $file)

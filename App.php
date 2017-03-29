@@ -24,6 +24,9 @@ class App
             self::$userConfig = [];
         }else {
             self::$userConfig = require_once(self::$userConfigFile);
+            if (isset(self::$userConfig["db"])){
+                $GLOBALS["db"] = self::$userConfig["db"];
+            }
         }
     }
 
@@ -103,14 +106,20 @@ class App
     }
 
     /**
-     * @param int $port 监听端口号
-     * @param string $file 用户配置文件地址
+     * @param $protocol
+     * @param int $port
+     * @param int $worker_count
+     * @param string $file
      */
-    public static function run($port=20001,$worker_count=4,$file=""){
+    public static function run($protocol,$port=20001,$worker_count=4,$file=""){
         self::$userConfigFile = $file;
+        if (!in_array($protocol,["http","websocket"])){
+            echo "只能是http协议或者websocket协议";
+            return;
+        }
         // #### http worker ####
-        $http_worker = new Worker("http://[::]:$port");
-        $http_worker->name = "HttpService";
+        $http_worker = new Worker("$protocol://0.0.0.0:$port");
+        $http_worker->name = "$protocol Service";
         // 4 processes
         $http_worker->count = $worker_count;
         //初始化进程
@@ -123,7 +132,10 @@ class App
         };
 
         // 接收消息
-        $http_worker->onMessage = function($connection, $data){
+        $http_worker->onMessage = function($connection, $data)use($protocol){
+            if ($protocol=="websocket"){
+                $data = json_decode($data,true);
+            }
             self::onMessage($connection, $data);
         };
 
