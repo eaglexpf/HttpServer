@@ -1,5 +1,6 @@
 # RocWorker
 # roc.xu
+```php
 require_once __DIR__."/vendor/autoload.php";
 $config_file = __DIR__."/common/config/main.php";
 //启动http进程
@@ -12,3 +13,4 @@ $log->run($config_file);
 opcache_reset();
 //启动进程
 \Workerman\Worker::runAll();
+```
