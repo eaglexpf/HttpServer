@@ -6,7 +6,7 @@
  * Time: 16:02
  */
 
-namespace Roc;
+namespace RocWorker;
 
 
 class Autoload{
@@ -27,4 +27,4 @@ class Autoload{
     }
 }
 
-spl_autoload_register('\Roc\Autoload::loadByNamespace');
+spl_autoload_register('\RocWorker\Autoload::loadByNamespace');

@@ -1,7 +1,7 @@
 <?php
-namespace Roc;
-use Roc\controllers\Controller;
-use Roc\libs\FileMonitor;
+namespace RocWorker;
+use RocWorker\controllers\Controller;
+use RocWorker\libs\FileMonitor;
 use Workerman\Worker;
 /**
  * Created by PhpStorm.
