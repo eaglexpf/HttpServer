@@ -1,5 +1,7 @@
 # RocWorker
 # roc.xu
+
+### composer require eaglexpf/rocworker @dev
 ```php
 require_once __DIR__."/vendor/autoload.php";
 $config_file = __DIR__."/common/config/main.php";
