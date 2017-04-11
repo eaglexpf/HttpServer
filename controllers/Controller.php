@@ -1,5 +1,5 @@
 <?php
-namespace RocWorker\controllers;
+namespace Roc\controllers;
 use Workerman\Protocols\Http;
 /**
  * Created by PhpStorm.
@@ -29,7 +29,7 @@ class Controller{
     /**
      * 返回html内容
      */
-    public function sendHtml($view,$data){
+    public function sendHtmlView($view,$data){
         $controller = explode("controllers",self::$message["roc"]["controller"]);
         $file = __DIR__."/../../../../".str_replace("\\","/",$controller[0])."views".str_replace("\\","/",strtolower($controller[1]))."/$view.php";
 //        $content = file_get_contents($file);
@@ -38,17 +38,17 @@ class Controller{
         $content = ob_get_clean();
         return self::$connection->send($content);
     }
+    public function sendHtml($data){
+        return self::$connection->send($data);
+    }
 
     /**
-     * @param $key 参数名称
-     * @param bool $power 是否必传参数（默认必传参数）
-     * @param null $value 默认值
-     * @return null
-     * @throws \Exception
+     *  bool $power 是否必传参数（默认必传参数）
+     *  null $value 默认值
      */
     public static function get($key,$power=true,$value=null){
         if ($power){
-            if (isset(self::$message['get'][$key])){
+            if (isset(self::$message['get'][$key])&&!empty(self::$message['get'][$key])){
                 return self::$message['get'][$key];
             }
             throw new \Exception("GET：缺少参数$key",400);
