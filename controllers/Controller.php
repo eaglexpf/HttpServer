@@ -1,5 +1,5 @@
 <?php
-namespace Roc\controllers;
+namespace RocWorker\controllers;
 use Workerman\Protocols\Http;
 /**
  * Created by PhpStorm.
@@ -15,13 +15,16 @@ class Controller{
         self::$message = $message;
     }
 
+    public static function send($data){
+        return self::$connection->send($data);
+    }
     /**
      * 返回json数据
      * @param $data
      * @return mixed
      */
     public static function sendJson($data){
-        Http::header("Content-type: application/json");
+        Http::header("Content-Type:application/json; charset=UTF-8");
         Http::header("Access-Control-Allow-Origin:*");
         return self::$connection->send(json_encode($data,320));
     }
@@ -29,26 +32,55 @@ class Controller{
     /**
      * 返回html内容
      */
-    public function sendHtmlView($view,$data){
+    public function sendView($view,$function_param=[]){
+        foreach($function_param as $k=>$v){
+            $$k = $v;
+        }
         $controller = explode("controllers",self::$message["roc"]["controller"]);
         $file = __DIR__."/../../../../".str_replace("\\","/",$controller[0])."views".str_replace("\\","/",strtolower($controller[1]))."/$view.php";
 //        $content = file_get_contents($file);
+//        ob_start();
+//        include $file;
+//        $content = ob_get_clean();
+        if (!is_file($file)){
+            Http::header("HTTP/1.1 404 Not Found");
+            self::$connection->close('<html><head><title>404 File not found</title></head><body><center><h3>404 Not Found</h3></center></body></html>');
+            return;
+        }
+        ini_set('display_errors', 'off');
         ob_start();
-        include $file;
+        // Try to include php file.
+        try {
+            // $_SERVER.
+            $_SERVER['REMOTE_ADDR'] = self::$connection->getRemoteIp();
+            $_SERVER['REMOTE_PORT'] = self::$connection->getRemotePort();
+            include $file;
+        } catch (\Exception $e) {
+            // Jump_exit?
+            if ($e->getMessage() != 'jump_exit') {
+                echo $e;
+            }
+        }
         $content = ob_get_clean();
-        return self::$connection->send($content);
-    }
-    public function sendHtml($data){
-        return self::$connection->send($data);
+        ini_set('display_errors', 'on');
+        if (strtolower($_SERVER['HTTP_CONNECTION']) === "keep-alive") {
+            self::$connection->send($content);
+        } else {
+            self::$connection->close($content);
+        }
+        return ;
     }
 
     /**
-     *  bool $power 是否必传参数（默认必传参数）
-     *  null $value 默认值
+     * @param $key 参数名称
+     * @param bool $power 是否必传参数（默认必传参数）
+     * @param null $value 默认值
+     * @return null
+     * @throws \Exception
      */
     public static function get($key,$power=true,$value=null){
         if ($power){
-            if (isset(self::$message['get'][$key])&&!empty(self::$message['get'][$key])){
+            if (isset(self::$message['get'][$key])){
                 return self::$message['get'][$key];
             }
             throw new \Exception("GET：缺少参数$key",400);

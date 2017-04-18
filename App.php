@@ -113,7 +113,7 @@ class App
      * @param int $worker_count
      * @param string $file
      */
-    public static function run($protocol,$port=20001,$worker_count=4,$file=""){
+    public static function run($protocol='http',$port=20001,$worker_count=4,$file=""){
         self::$userConfigFile = $file;
         if (!in_array($protocol,["http","websocket"])){
             echo "只能是http协议或者websocket协议";

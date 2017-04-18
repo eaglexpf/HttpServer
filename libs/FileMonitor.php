@@ -11,7 +11,7 @@ use Workerman\Lib\Timer;
 class FileMonitor{
     public static $time;
     public static $config_file;
-    public function run($config_file){
+    public function run($config_file=''){
         $worker = new Worker();
         $worker->name = 'FileMonitor';
         $worker->reloadable = false;
