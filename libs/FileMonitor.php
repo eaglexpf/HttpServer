@@ -11,7 +11,11 @@ use Workerman\Lib\Timer;
 class FileMonitor{
     public static $time;
     public static $config_file;
-    public function run($config_file=''){
+    public static function run($config_file=''){
+        $model = new FileMonitor();
+        $model->start($config_file='');
+    }
+    protected function start($config_file=''){
         $worker = new Worker();
         $worker->name = 'FileMonitor';
         $worker->reloadable = false;
@@ -27,11 +31,11 @@ class FileMonitor{
             }
             $dir_data = isset($userConfig["FileMonitor"])?$userConfig["FileMonitor"]:[__DIR__."/../../../../"];
             // chek mtime of files per second
-            Timer::add(1, [$this, 'check_files_change'],[$dir_data]);
+            Timer::add(1, ['RocWorker\libs\FileMonitor', 'check_files_change'],[$dir_data]);
         };
     }
 
-    public function check_files_change($dir_data){
+    public static function check_files_change($dir_data){
         $last_mtime = self::$time;
         // recursive traversal directory
         foreach ($dir_data as $k=>$value){

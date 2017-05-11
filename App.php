@@ -9,7 +9,7 @@ use Workerman\Worker;
  * Date: 2017/3/25
  * Time: 0:06
  */
-require_once __DIR__."/Autoload.php";
+require_once __DIR__."/controllers/Autoload.php";
 class App
 {
     protected static $config;

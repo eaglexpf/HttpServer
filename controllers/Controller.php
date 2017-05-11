@@ -15,8 +15,16 @@ class Controller{
         self::$message = $message;
     }
 
-    public static function send($data){
-        return self::$connection->send($data);
+    /** 直接返回消息
+     * @param $data
+     * @param bool $bool
+     * @return mixed
+     */
+    public static function send($data,$bool=true){
+        if ($bool){
+            return self::$connection->send($data);
+        }
+        return self::$connection->close($data);
     }
     /**
      * 返回json数据
@@ -30,7 +38,7 @@ class Controller{
     }
 
     /**
-     * 返回html内容
+     * 返回view内容
      */
     public function sendView($view,$function_param=[]){
         foreach($function_param as $k=>$v){
@@ -38,10 +46,6 @@ class Controller{
         }
         $controller = explode("controllers",self::$message["roc"]["controller"]);
         $file = __DIR__."/../../../../".str_replace("\\","/",$controller[0])."views".str_replace("\\","/",strtolower($controller[1]))."/$view.php";
-//        $content = file_get_contents($file);
-//        ob_start();
-//        include $file;
-//        $content = ob_get_clean();
         if (!is_file($file)){
             Http::header("HTTP/1.1 404 Not Found");
             self::$connection->close('<html><head><title>404 File not found</title></head><body><center><h3>404 Not Found</h3></center></body></html>');
@@ -64,11 +68,25 @@ class Controller{
         $content = ob_get_clean();
         ini_set('display_errors', 'on');
         if (strtolower($_SERVER['HTTP_CONNECTION']) === "keep-alive") {
-            self::$connection->send($content);
+//            self::$connection->send($content);
+            self::send($content);
         } else {
-            self::$connection->close($content);
+            self::send($content,false);
+//            self::$connection->close($content);
         }
         return ;
+    }
+    /*
+     * 静态文件返回
+     */
+    public static function sendStatic($data){
+        if ($data['code']==200){
+            self::send($data['data']);
+        }else{
+            Http::header("HTTP/1.1 404 Not Found");
+            self::send('<html><head><title>404 File not found</title></head><body><center><h3>404 Not Found</h3></center></body></html>');
+//            self::$connection->close('<html><head><title>404 File not found</title></head><body><center><h3>404 Not Found</h3></center></body></html>');
+        }
     }
 
     /**
@@ -116,6 +134,6 @@ class Controller{
     }
 
     public static function server($key){
-        return self::$message['server'][$key];
+        return isset(self::$message['server'][$key])?self::$message['server'][$key]:null;
     }
 }
