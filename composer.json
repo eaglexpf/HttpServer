@@ -1,11 +1,11 @@
 {
-    "name": "eaglexpf/rocworker",
+    "name": "eaglexpf/http-server",
     "description": "workerman http api",
     "require": {
     },
     "autoload": {
         "psr-4": {
-            "RocWorker\\": "./"
+            "HttpServer\\": "./"
         }
     },
     "license": "GPL-3.0+",
