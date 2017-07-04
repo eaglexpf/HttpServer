@@ -5,50 +5,44 @@
  * Time: 9:59
  */
 
-namespace RocWorker;
+namespace HttpServer;
 
 
-use RocWorker\controllers\App;
-use RocWorker\libs\FileMonitor;
+use HttpServer\controllers\Events;
+use HttpServer\libs\FileMonitor;
 use Workerman\Worker;
 
+require_once __DIR__.'/Autoload.php';
 
 class Api{
     /*
      * 启动方法
      */
-    public static function run($protocol='http',$port=21001,$name='http_worker',$count=4,$file=''){
-        if (!in_array($protocol,["http","websocket"])){
-            echo "只能是http协议或者websocket协议";
-            return;
-        }
+    public static function run($port=21001,$name='http_worker',$count=4,$file=''){
         //启动http进程
-        $http_worker = new Worker($protocol.'://0.0.0.0:'.$port);
+        $http_worker = new Worker('http://0.0.0.0:'.$port);
         $http_worker->name = $name;
         $http_worker->count = $count;
         $http_worker->onWorkerStart = function ($worker)use($file){
-            App::onStart($worker,$file);
+            Events::onStart($worker,$file);
         };
         $http_worker->onConnect = function ($connection){
-            App::onConnect($connection);
+            Events::onConnect($connection);
         };
-        $http_worker->onMessage = function ($connection,$data)use($protocol){
-            if ($protocol=="websocket"){
-                $data = json_decode($data,true);
-            }
-            App::onMessage($connection,$data);
+        $http_worker->onMessage = function ($connection,$data){
+            Events::onMessage($connection,$data);
         };
         $http_worker->onClose = function ($connection){
-            App::onCLose($connection);
+            Events::onCLose($connection);
         };
         $http_worker->onError = function ($worker){
-            App::onError($worker);
+            Events::onError($worker);
         };
         $http_worker->onWorkerStop = function ($worker){
-            App::onStop($worker);
+            Events::onStop($worker);
         };
-        $http_worker->onWorkerReload = function ($worker){
-            App::onReload($worker);
+        $http_worker->onWorkerReload = function ($worker)use($file){
+            Events::onReload($worker,$file);
         };
         FileMonitor::run();
 

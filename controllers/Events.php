@@ -5,17 +5,15 @@
  * Time: 13:37
  */
 
-namespace RocWorker\controllers;
+namespace HttpServer\controllers;
 
+use HttpServer\config\Config;
+use HttpServer\libs\Db;
+use Workerman\Lib\Timer;
 use Workerman\Protocols\Http;
 
-require_once __DIR__.'/Autoload.php';
 
-class App{
-    /*
-     * 配置内容
-     */
-    protected static $config;
+class Events{
     /*
      * 检测配置
      */
@@ -27,16 +25,15 @@ class App{
         if (is_file($file)){//判断文件是否存在
             $config = require_once $file;
             if (is_array($config)){//判断是否是数组
-                if (isset($config['application'])){//项目地址
-                    $roc_config['application'] = $config['application'];
+//                if (isset($config['db'])){//数据库配置
+//                    Db::$config = $config['db'];
+//                }
+                foreach ($config as $k=>$v){
+                    $roc_config[$k] = $v;
                 }
-                if (isset($config['statics'])){//静态资源地址
-                    $roc_config['statics'] = $config['statics'];
-                }
-                self::$config = $config;
             }
         }
-        self::$config = $roc_config;
+        Config::$config = $roc_config;
     }
     /*
      * 程序启动
@@ -54,15 +51,21 @@ class App{
      * 抓取静态文件返回
      */
     protected static function getFile($connection,$message,$type){
-        $file = __DIR__.'/../../../../'.self::$config['statics'].$message['server']['REQUEST_URI'];
+        $file = __DIR__.'/../../../../'.Config::$config['statics'].$message['server']['REQUEST_URI'];
         $baseController = new Controller($connection,$message);
         if (!is_file($file)){
             $baseController->sendStatic(["code"=>404,"message"=>$message['server']['REQUEST_URI'].":Not Found"]);
             return;
         }
-        if (in_array($type,['jpg','png','gif'])){
-            Http::header("Content-Type: image/".$type.';charset=utf-8');
-        }else{
+        $http_type = require_once __DIR__.'/../config/http_type.php';
+        $bool = true;
+        foreach ($http_type as $k=>$v){
+            if ($k==$type){
+                Http::header("Content-Type: ".$v.';charset=utf-8');
+                $bool = false;
+            }
+        }
+        if ($bool){
             Http::header("Content-Type: text/".$type.';charset=utf-8');
         }
 
@@ -72,10 +75,17 @@ class App{
      * 接收消息
      */
     public static function onMessage($connection,$message){
+        $connection->request_time = microtime(true);
+//        耗时任务造成的进程阻塞需要使用异步处理  GatewayHttpServer
+//        $baseController = new Controller($connection,$message);
+//        $connection->cron_id = Timer::add(1,function (){
+//            var_dump('5s');
+//            $baseController->sendJson(['code'=>504,'msg'=>'服务器请求超时'],false);throw new \Exception("connection die");
+//        });
         try{
 
             //将请求地址切分为数组（数组为目录和文件）
-            $array = explode("/",explode('?',  self::$config['application']."/controllers".$message['server']['REQUEST_URI'])[0]);
+            $array = explode("/",explode('?',  Config::$config['application']."/controllers".$message['server']['REQUEST_URI'])[0]);
             //判断请求地址是否有后缀；有后缀且后缀不是php的抓取静态文件返回
             if(strstr($array[count($array)-1], '.')){
                 $file_data = explode('.',$array[count($array)-1]);
@@ -118,8 +128,9 @@ class App{
                     throw new \Exception("Class:$controller Not Found", 404);
                 }
             }
+            $controller_prefix_len = strlen(Config::$config['application']."\\controllers\\");
             $message["roc"] = [
-                "controller" => $controller,
+                "controller" => substr($controller,$controller_prefix_len),
                 "action" => $action
             ];
             //初始化文件
@@ -132,11 +143,11 @@ class App{
         }catch (\Exception $e){
             $errorCode = $e->getCode()?$e->getCode():500;
             $baseController = new Controller($connection,$message);
-            $baseController->sendJson(["code"=>$errorCode,"message"=>$e->getMessage()]);
+            $baseController->sendJson(["code"=>$errorCode,"msg"=>$e->getMessage()]);
         }catch (\Error $e){
             $errorCode = $e->getCode()?$e->getCode():500;
             $baseController = new Controller($connection,$message);
-            $baseController->sendJson(["code"=>$errorCode,"message"=>$e->getMessage()]);
+            $baseController->sendJson(["code"=>$errorCode,"msg"=>$e->getMessage()]);
         }
     }
     /*
@@ -160,7 +171,7 @@ class App{
     /*
      * 进程重启
      */
-    public static function onReload($worker){
-
+    public static function onReload($worker,$file){
+        self::checkConfig($file);
     }
 }

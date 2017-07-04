@@ -1,5 +1,5 @@
 <?php
-namespace RocWorker\libs;
+namespace HttpServer\libs;
 
 use Exception;
 use PDO;

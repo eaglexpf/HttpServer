@@ -1,5 +1,5 @@
 <?php
-namespace RocWorker\libs;
+namespace HttpServer\libs;
 use Workerman\Worker;
 use Workerman\Lib\Timer;
 /**
@@ -31,7 +31,7 @@ class FileMonitor{
             }
             $dir_data = isset($userConfig["FileMonitor"])?$userConfig["FileMonitor"]:[__DIR__."/../../../../"];
             // chek mtime of files per second
-            Timer::add(1, ['RocWorker\libs\FileMonitor', 'check_files_change'],[$dir_data]);
+            Timer::add(1, ['HttpServer\libs\FileMonitor', 'check_files_change'],[$dir_data]);
         };
     }
 
