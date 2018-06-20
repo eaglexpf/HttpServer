@@ -6,7 +6,6 @@
  */
 
 namespace HttpServer\libs;
-use HttpServer\config\Config;
 use Exception;
 
 class Mredis extends \Redis
@@ -17,7 +16,7 @@ class Mredis extends \Redis
      * 获取redis链接
      */
     public static function instance($config_name){
-        if (!isset(Config::$config['redis'][$config_name])) {
+        if (!isset($GLOBALS['config']['redis'][$config_name])) {
             echo "$config_name not set\n";
             throw new Exception("$config_name not set\n");
         }
@@ -35,7 +34,7 @@ class Mredis extends \Redis
      * 建立redis链接
      */
     protected static function connectToRedis($config_name){
-        $config                       = Config::$config['redis'][$config_name];
+        $config                       = $GLOBALS['config']['redis'][$config_name];
         self::$instance[$config_name] = new self();
         $host = isset($config['host'])?$config['host']:'127.0.0.1';
         $port = isset($config['port'])?$config['port']:'6379';
@@ -69,13 +68,26 @@ class Mredis extends \Redis
         return $data;
     }
 
-    public function setStrKey($key,$str,$time=60){
+    //普通set操作
+    public function setStrKey($key,$str,$time=0){
         $this->set($key,$str);
-        $this->expire($key,$time);
+        if ($time){
+            $this->expire($key,$time);
+        }
         return true;
     }
-
+    //普通get操作
     public function getStrKey($key){
         return $this->get($key);
+    }
+
+    //添加集合
+    public function addOnlyList($key,$value,$time=0){
+
+        $bool = $this->sAdd($key,$value);
+        if ($time){
+            $this->expire($key,$time);
+        }
+        return $bool;
     }
 }

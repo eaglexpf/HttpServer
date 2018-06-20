@@ -14,7 +14,6 @@
 namespace HttpServer\libs;
 
 use Exception;
-use HttpServer\config\Config;
 
 /**
  * 数据库类
@@ -37,13 +36,13 @@ class Db
      */
     public static function instance($config_name)
     {
-        if (!isset(Config::$config['db'][$config_name])) {
+        if (!isset($GLOBALS['config']['db'][$config_name])) {
             echo "$config_name not set\n";
             throw new Exception("$config_name not set\n");
         }
 
         if (empty(self::$instance[$config_name])) {
-            $config                       = Config::$config['db'][$config_name];
+            $config                       = $GLOBALS['config']['db'][$config_name];
             self::$instance[$config_name] = new DbConnection($config['host'], $config['port'],
                 $config['user'], $config['password'], $config['dbname']);
         }
