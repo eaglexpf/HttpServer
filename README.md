@@ -3,10 +3,8 @@
 
 ### composer require eaglexpf/http-server @dev
 
-## 代码示例
+## start.php  启动文件
 ```php
-start.php  启动文件
-
 
 require_once __DIR__.'/vendor/autoload.php';
 
@@ -19,9 +17,10 @@ $http->count = 4;
 $http->config_file = __DIR__.'/config.php';
 
 \Workerman\Worker::runAll();
+```
 
-
-config.php配置文件
+## config.php配置文件
+```
 return [
     'domain' => [
         'localhost' => [                            //域名
@@ -51,4 +50,20 @@ return [
         ]
     ]
 ];
+```
+## controllers示例
+```
+namespace backend\controllers;
+use HttpServer\Controllers;
+
+class Index extends Controllers
+{
+    public function index(){
+        $this->send('Hello Roc');
+    }
+    public function hello(){
+        $this->sendJson(['msg'=>'Hello World!!!']);
+    }
+
+}
 ```
