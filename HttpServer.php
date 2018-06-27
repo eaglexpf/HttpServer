@@ -27,8 +27,21 @@ class HttpServer extends Worker
         $this->initConfig();
         $this->_onWorkerStart = $this->onWorkerStart;
         $this->onWorkerStart  = array($this, 'onWorkerStart');
+        $this->onConnect = array($this,'onConnect');
+        $this->onClose = array($this,'onClose');
+        $this->onError = array($this,'onError');
         $this->onMessage      = array($this, 'onMessage');
         parent::run();
+    }
+
+    public function onConnect($connection){
+        var_dump('this is connect ,connection id is '.$connection->id);
+    }
+    public function onClose($connection){
+        var_dump('this is close , connection id is '.$connection->id);
+    }
+    public function onError(){
+        var_dump('this is error,');
     }
 
     protected function initConfig(){
@@ -83,7 +96,8 @@ class HttpServer extends Worker
         }
     }
 
-    public function onWorkerStart(){
+    public function onWorkerStart($worker){
+        mt_srand($worker->id);
         if (empty($this->serverRoot)) {
             Worker::safeEcho(new \Exception('server root not set, please use WebServer::addRoot($domain, $root_path) to set server root path'));
             exit(250);
@@ -123,33 +137,41 @@ class HttpServer extends Worker
             }
             //第一种；请求路径包含类和方法
             $model_name = str_replace('/','\\',$http_siteConfig['controller'].$http_path_info['dirname']);
-            if (is_file($http_siteConfig['root'].$model_name.'.php')){
+            $class_path = str_replace('\\', DIRECTORY_SEPARATOR, $http_siteConfig['root'].$model_name.'.php');
+            if (is_file($class_path)){
                 $func_name = !empty($http_path_info['basename'])?$http_path_info['basename']:'index';
                 if (class_exists($model_name)){
                     if (method_exists($model_name,$func_name)){
-                        $model = new $model_name($connection,$data);
+                        $connection->start_time = microtime(true);
                         try{
+                            $model = new $model_name($connection,$data);
+                            $model->start_time = $connection->start_time;
                             $model->$func_name();
                             return;
                         }catch (\Exception $e){
-                            $msg = json_decode(['code'=>$e->getCode(),'msg'=>$e->getMessage()]);
+                            $msg = json_encode(['code'=>$e->getCode(),'msg'=>$e->getMessage()],320);
                         }catch (\Error $e){
-                            $msg = json_decode(['code'=>$e->getCode(),'msg'=>$e->getMessage()]);
+                            $msg = json_encode(['code'=>$e->getCode(),'msg'=>$e->getMessage()],320);
                         }
                         Http::header("Content-Type:application/json; charset=UTF-8");
-                        $model->send($msg);
+                        $runTime = round(microtime(true)-$connection->start_time,5);
+                        Http::header("Run-Time:$runTime");
+                        $connection->send($msg);
                         return;
                     }
                 }
             }
             //第二种；请求路径只包含类
             $model_name = str_replace('/','\\',$http_siteConfig['controller'].$http_path);
-            if (is_file($http_siteConfig['root'].$model_name.'.php')){
+            $class_path = str_replace('\\', DIRECTORY_SEPARATOR, $http_siteConfig['root'].$model_name.'.php');
+            if (is_file($class_path)){
                 $func_name = 'index';
                 if (class_exists($model_name)){
                     if (method_exists($model_name,$func_name)){
-                        $model = new $model_name($connection,$data);
+                        $connection->start_time = microtime(true);
                         try{
+                            $model = new $model_name($connection,$data);
+                            $model->start_time = $connection->start_time;
                             $model->$func_name();
                             return;
                         }catch (\Exception $e){
@@ -158,7 +180,7 @@ class HttpServer extends Worker
                             $msg = json_encode(['code'=>$e->getCode(),'msg'=>$e->getMessage()],320);
                         }
                         Http::header("Content-Type:application/json; charset=UTF-8");
-                        $model->send($msg);
+                        $connection->send($msg);
                         return;
                     }
                 }
