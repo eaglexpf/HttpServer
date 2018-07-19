@@ -22,7 +22,8 @@ class Mredis extends \Redis
         }
 
         if (!empty(self::$instance[$config_name])) {
-            if (self::$instance[$config_name]->ping()!='PONG'){
+            if (self::$instance[$config_name]->ping()!='+PONG'){
+                var_dump('repet connect');
                 self::connectToRedis($config_name);
             }
         }else{

@@ -35,13 +35,13 @@ class HttpServer extends Worker
     }
 
     public function onConnect($connection){
-        var_dump('this is connect ,connection id is '.$connection->id);
+//        var_dump('this is connect ,connection id is '.$connection->id);
     }
     public function onClose($connection){
-        var_dump('this is close , connection id is '.$connection->id);
+//        var_dump('this is close , connection id is '.$connection->id);
     }
     public function onError(){
-        var_dump('this is error,');
+//        var_dump('this is error,');
     }
 
     protected function initConfig(){
@@ -122,94 +122,99 @@ class HttpServer extends Worker
 
 
     public function onMessage($connection,$data){
+        $start_time = microtime(true);
         //查询域名配置
         $http_siteConfig = isset($this->serverRoot[$_SERVER['SERVER_NAME']]) ? $this->serverRoot[$_SERVER['SERVER_NAME']] : current($this->serverRoot);
+        $send_data = '';
+        try{
+            $http_url_info = parse_url($_SERVER['REQUEST_URI']);
+            $http_path = isset($http_url_info['path']) ? $http_url_info['path'] : '/';
+            $http_path_info      = pathinfo($http_path);
+            $http_file_extension = isset($http_path_info['extension']) ? $http_path_info['extension'] : '';
 
-        $http_url_info = parse_url($_SERVER['REQUEST_URI']);
-        $http_path = isset($http_url_info['path']) ? $http_url_info['path'] : '/';
-        $http_path_info      = pathinfo($http_path);
-        $http_file_extension = isset($http_path_info['extension']) ? $http_path_info['extension'] : '';
-        //接口请求
-        if ($http_file_extension===''||$http_file_extension==='php'){
+
             if ($http_path==='/'){
                 $http_path = '/Index/index';
                 $http_path_info = pathinfo($http_path);
             }
-            //第一种；请求路径包含类和方法
-            $model_name = str_replace('/','\\',$http_siteConfig['controller'].$http_path_info['dirname']);
-            $class_path = str_replace('\\', DIRECTORY_SEPARATOR, $http_siteConfig['root'].$model_name.'.php');
-            if (is_file($class_path)){
-                $func_name = !empty($http_path_info['basename'])?$http_path_info['basename']:'index';
-                if (class_exists($model_name)){
-                    if (method_exists($model_name,$func_name)){
-                        $connection->start_time = microtime(true);
-                        try{
+
+            //接口请求
+            if ($http_file_extension===''||$http_file_extension==='php'){
+                //第一种；请求路径包含类和方法
+                $model_name = str_replace('/','\\',$http_siteConfig['controller'].$http_path_info['dirname']);
+                $class_path = str_replace('\\', DIRECTORY_SEPARATOR, $http_siteConfig['root'].$model_name.'.php');
+                if (is_file($class_path)){
+                    $func_name = !empty($http_path_info['basename'])?$http_path_info['basename']:'index';
+                    if (class_exists($model_name)){
+                        if (method_exists($model_name,$func_name)){
                             $model = new $model_name($connection,$data);
-                            $model->start_time = $connection->start_time;
-                            $model->$func_name();
-                            return;
-                        }catch (\Exception $e){
-                            $msg = json_encode(['code'=>$e->getCode(),'msg'=>$e->getMessage()],320);
-                        }catch (\Error $e){
-                            $msg = json_encode(['code'=>$e->getCode(),'msg'=>$e->getMessage()],320);
+                            return $model->$func_name();
                         }
-                        Http::header("Content-Type:application/json; charset=UTF-8");
-                        $runTime = round(microtime(true)-$connection->start_time,5);
-                        Http::header("Run-Time:$runTime");
-                        $connection->send($msg);
-                        return;
+                    }
+                }
+                //第二种；请求路径只包含类
+                $model_name = str_replace('/','\\',$http_siteConfig['controller'].$http_path);
+                $class_path = str_replace('\\', DIRECTORY_SEPARATOR, $http_siteConfig['root'].$model_name.'.php');
+                if (is_file($class_path)){
+                    $func_name = 'index';
+                    if (class_exists($model_name)){
+                        if (method_exists($model_name,$func_name)){
+                            $model = new $model_name($connection,$data);
+                            return $model->$func_name();
+                        }
                     }
                 }
             }
-            //第二种；请求路径只包含类
-            $model_name = str_replace('/','\\',$http_siteConfig['controller'].$http_path);
-            $class_path = str_replace('\\', DIRECTORY_SEPARATOR, $http_siteConfig['root'].$model_name.'.php');
-            if (is_file($class_path)){
-                $func_name = 'index';
-                if (class_exists($model_name)){
-                    if (method_exists($model_name,$func_name)){
-                        $connection->start_time = microtime(true);
-                        try{
-                            $model = new $model_name($connection,$data);
-                            $model->start_time = $connection->start_time;
-                            $model->$func_name();
-                            return;
-                        }catch (\Exception $e){
-                            $msg = json_encode(['code'=>$e->getCode(),'msg'=>$e->getMessage()],320);
-                        }catch (\Error $e){
-                            $msg = json_encode(['code'=>$e->getCode(),'msg'=>$e->getMessage()],320);
-                        }
-                        Http::header("Content-Type:application/json; charset=UTF-8");
-                        $connection->send($msg);
-                        return;
-                    }
+
+            if ($http_path==='/Index/index'){
+                $http_path = '/index.html';
+            }
+
+            //静态资源
+            $http_file = isset($http_siteConfig['statics'])?$http_siteConfig['statics']."$http_path":$http_path;
+            if (is_file($http_siteConfig['root'].$http_file)){
+                self::sendFile($connection,$http_siteConfig['root'].$http_file);
+                $runTime = round(microtime(true)-$start_time,5);
+                Http::header("Run-Time:$runTime");
+                Log::saveLog($runTime,$send_data);
+                return true;
+            }else{
+                // 404
+                Http::header("HTTP/1.1 404 Not Found");
+                if(isset($http_siteConfig['custom404']) && file_exists($http_siteConfig['custom404'])){
+                    $html404 = file_get_contents($http_siteConfig['custom404']);
+                }else{
+                    $html404 = '<html><head><title>404 File not found</title></head><body><center><h3>404 Not Found</h3></center></body></html>';
                 }
+                $runTime = round(microtime(true)-$start_time,5);
+                Http::header("Run-Time:$runTime");
+                Log::saveLog($runTime,$html404);
+                return $connection->close($html404);
             }
-            // 404
-            Http::header("HTTP/1.1 404 Not Found");
-            if(isset($http_siteConfig['custom404']) && file_exists($http_siteConfig['custom404'])){
-                $html404 = file_get_contents($http_siteConfig['custom404']);
-            }else{
-                $html404 = '<html><head><title>404 File not found</title></head><body><center><h3>404 Not Found</h3></center></body></html>';
-            }
-            $connection->close($html404);
-            return;
+
+        }catch (\Exception $e){
+            $send_data = json_encode([
+                'ErrorCode' => $e->getCode(),
+                'Error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ],320);
+        }catch (\Error $e){
+            $send_data = json_encode([
+                'ErrorCode' => $e->getCode(),
+                'Error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ],320);
         }
-        //静态资源
-        $http_file = isset($http_siteConfig['statics'])?$http_siteConfig['statics']."/$http_path":$http_path;
-        if (is_file($http_siteConfig['root'].$http_file)){
-            self::sendFile($connection,$http_siteConfig['root'].$http_file);
-        }else{
-            // 404
-            Http::header("HTTP/1.1 404 Not Found");
-            if(isset($http_siteConfig['custom404']) && file_exists($http_siteConfig['custom404'])){
-                $html404 = file_get_contents($http_siteConfig['custom404']);
-            }else{
-                $html404 = '<html><head><title>404 File not found</title></head><body><center><h3>404 Not Found</h3></center></body></html>';
-            }
-            $connection->close($html404);
-            return;
-        }
+        Http::header("HTTP/1.1 500 Internal Server Error");
+        Http::header("Content-Type:application/json; charset=UTF-8");
+        $runTime = round(microtime(true)-$start_time,5);
+        Http::header("Run-Time:$runTime");
+        Log::saveLog($runTime,$send_data);
+        return $connection->close($send_data);
+
+
     }
 
     public static function sendFile($connection,$file_path){
@@ -221,6 +226,7 @@ class HttpServer extends Worker
             if ($modified_time === $_SERVER['HTTP_IF_MODIFIED_SINCE']) {
                 // 304
                 Http::header('HTTP/1.1 304 Not Modified');
+                $_SERVER['response_status'] = 304;
                 // Send nothing but http headers..
                 $connection->close('');
                 return;
@@ -280,6 +286,7 @@ class HttpServer extends Worker
             $do_write();
         };
         $do_write();
+        return true;
     }
 
 
